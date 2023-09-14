@@ -17,6 +17,7 @@ arfs, err := goarfs.FromFile("myfile.ar")
 if err != nil {
     panic(err)
 }
+defer arfs.Close()
 data, err := arfs.ReadFile("internalfilename.txt")
 if err != nil {
     panic(err)
