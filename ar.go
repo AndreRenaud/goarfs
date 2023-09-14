@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -179,8 +180,18 @@ func (a *ARFS) Close() error {
 	return nil
 }
 
-func (a *ARFS) Open(name string) (fs.File, error) {
+func (a *ARFS) getHeader(name string) (*fileHeader, bool) {
+	// normalize the name
+	name = path.Clean(name)
+	name = strings.TrimPrefix(name, "/")
+	name = strings.TrimPrefix(name, "./")
+
 	header, ok := a.fileHeaders[name]
+	return header, ok
+}
+
+func (a *ARFS) Open(name string) (fs.File, error) {
+	header, ok := a.getHeader(name)
 	if !ok {
 		return nil, fs.ErrNotExist
 	}
@@ -210,7 +221,7 @@ func (a *ARFS) ReadFile(name string) ([]byte, error) {
 }
 
 func (a *ARFS) Stat(name string) (fs.FileInfo, error) {
-	fh, ok := a.fileHeaders[name]
+	fh, ok := a.getHeader(name)
 	if !ok {
 		return nil, fs.ErrNotExist
 	}

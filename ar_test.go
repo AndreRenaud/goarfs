@@ -32,4 +32,14 @@ func TestARFile(t *testing.T) {
 		t.Fatalf("test1.dat should contain 26 bytes, contains %d", len(data))
 	}
 
+	s, err := ar.Stat("/test2.dat")
+	if err != nil {
+		t.Fatalf("cannot stat test2.dat: %s", err)
+	}
+	if s.Size() != 3 {
+		t.Fatalf("test2.dat is not 3 bytes long: %d", s.Size())
+	}
+	if s.Name() != "test2.dat" {
+		t.Fatalf("test2.dat is named incorrectly: %s", s.Name())
+	}
 }
