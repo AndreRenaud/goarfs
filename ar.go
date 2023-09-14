@@ -1,3 +1,8 @@
+// Package goarfs is an implementation of the fs.FS interface
+// to make it easy to access data inside AR archives seamlessly as a
+// replacement for direct filesystem access.
+// This is a convenience to make it easy to ship data files around together as
+// as single file, but still access the individual pieces inside.
 package goarfs
 
 import (
