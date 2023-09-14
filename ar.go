@@ -102,7 +102,7 @@ func (a *ARFS) parse() error {
 
 		n, err := a.rawFile.Read(header[:])
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				return nil
 			}
 			return err
@@ -149,7 +149,7 @@ func (a *ARFS) parse() error {
 			return err
 		}
 
-		sectionReader := io.NewSectionReader(a.rawFile, offset, int64(size))
+		sectionReader := io.NewSectionReader(a.rawFile, offset, size)
 
 		a.fileHeaders[filename] = &fileHeader{
 			name:          filename,

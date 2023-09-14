@@ -1,0 +1,46 @@
+run:
+  timeout: 3m
+linters:
+  enable:
+    - asciicheck
+    - bidichk
+    - contextcheck
+    - decorder
+    - dogsled
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exportloopref
+    - forcetypeassert
+    - gocheckcompilerdirectives
+    - goconst
+    - gofmt
+    - goimports
+    - gomnd
+    - goprintffuncname
+    - gosimple
+    - govet
+    - importas
+    - ineffassign
+    - loggercheck
+    - misspell
+    - nakedret
+    - nilnil
+    - noctx
+    - nosprintfhostport
+    - predeclared
+    - reassign
+    - revive
+    - sqlclosecheck
+    - staticcheck
+    - tenv
+    - thelper
+    - tparallel
+    - typecheck
+    - typecheck
+    - unconvert
+    - usestdlibvars
+    - unused
+
