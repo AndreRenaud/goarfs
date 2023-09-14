@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"log"
 
 	"github.com/AndreRenaud/goarfs"
@@ -35,15 +34,10 @@ func main() {
 	}
 
 	if *filename != "" {
-		f, err := ar.Open(*filename)
+		data, err := ar.ReadFile(*filename)
 		if err != nil {
 			log.Fatalf("open %q: %s", *filename, err)
 		}
-		data, err := io.ReadAll(f)
-		if err != nil {
-			log.Fatalf("read: %s", err)
-		}
 		fmt.Print(string(data))
-		defer f.Close()
 	}
 }

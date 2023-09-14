@@ -11,21 +11,6 @@ import (
 	"time"
 )
 
-type ARFSRaw interface {
-	io.Reader
-	io.ReaderAt
-	io.Seeker
-}
-
-type ARFS struct {
-	rawFile ARFSRaw
-
-	fileHeaders map[string]*fileHeader
-}
-
-var _ fs.FS = (*ARFS)(nil)
-var _ fs.ReadDirFS = (*ARFS)(nil)
-
 const (
 	headerSize = 60
 )
@@ -39,6 +24,24 @@ var (
 	ErrBadFileHeader = errors.New("bad AR file header")
 )
 
+type ARFSRaw interface {
+	io.Reader
+	io.ReaderAt
+	io.Seeker
+}
+
+type ARFS struct {
+	rawFile ARFSRaw
+
+	fileHeaders map[string]*fileHeader
+}
+
+// Make sure we implement all the various fs.FS interfaces
+var _ fs.FS = (*ARFS)(nil)
+var _ fs.ReadDirFS = (*ARFS)(nil)
+var _ fs.ReadFileFS = (*ARFS)(nil)
+var _ fs.StatFS = (*ARFS)(nil)
+
 type fileHeader struct {
 	name         string
 	modification time.Time
@@ -51,6 +54,9 @@ type fileHeader struct {
 	sectionReader *io.SectionReader
 }
 
+// FromFile loads an AR file from the operating system filesystem and returns
+// the fs.FS compatible interface from it. It will return an error if the AR file
+// is corrupt/invalid.
 func FromFile(filename string) (*ARFS, error) {
 	f, err := os.Open(filename)
 	if err != nil {
@@ -155,7 +161,8 @@ func (a *ARFS) parse() error {
 			offset:        offset,
 			sectionReader: sectionReader,
 		}
-		// round up to 2
+
+		// file entries are aligned to two-byte offsets
 		size += size & 1
 		if _, err := a.rawFile.Seek(size, io.SeekCurrent); err != nil {
 			return err
@@ -192,6 +199,22 @@ func (a *ARFS) ReadDir(name string) ([]fs.DirEntry, error) {
 	}
 
 	return ret, nil
+}
+
+func (a *ARFS) ReadFile(name string) ([]byte, error) {
+	f, err := a.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	return io.ReadAll(f)
+}
+
+func (a *ARFS) Stat(name string) (fs.FileInfo, error) {
+	fh, ok := a.fileHeaders[name]
+	if !ok {
+		return nil, fs.ErrNotExist
+	}
+	return fh, nil
 }
 
 func (fh *fileHeader) Stat() (fs.FileInfo, error) {
