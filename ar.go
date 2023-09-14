@@ -47,17 +47,9 @@ type fileHeader struct {
 	mode         uint32
 	size         uint32
 	offset       int64
-}
 
-type arfile struct {
-	reader *io.SectionReader
-	header *fileHeader
+	sectionReader *io.SectionReader
 }
-
-// Make sure we implement all the extras
-var _ fs.File = (*arfile)(nil)
-var _ io.ReaderAt = (*arfile)(nil)
-var _ io.Seeker = (*arfile)(nil)
 
 func FromFile(filename string) (*ARFS, error) {
 	f, err := os.Open(filename)
@@ -151,14 +143,17 @@ func (a *ARFS) parse() error {
 			return err
 		}
 
+		sectionReader := io.NewSectionReader(a.rawFile, offset, int64(size))
+
 		a.fileHeaders[filename] = &fileHeader{
-			name:         filename,
-			modification: time.Unix(modification, 0),
-			owner:        uint32(owner),
-			group:        uint32(group),
-			mode:         uint32(mode),
-			size:         uint32(size),
-			offset:       offset,
+			name:          filename,
+			modification:  time.Unix(modification, 0),
+			owner:         uint32(owner),
+			group:         uint32(group),
+			mode:          uint32(mode),
+			size:          uint32(size),
+			offset:        offset,
+			sectionReader: sectionReader,
 		}
 		// round up to 2
 		size += size & 1
@@ -183,9 +178,7 @@ func (a *ARFS) Open(name string) (fs.File, error) {
 		return nil, fs.ErrNotExist
 	}
 
-	sectionReader := io.NewSectionReader(a.rawFile, header.offset, int64(header.size))
-
-	return &arfile{reader: sectionReader, header: header}, nil
+	return header, nil
 }
 
 func (a *ARFS) ReadDir(name string) ([]fs.DirEntry, error) {
@@ -201,42 +194,46 @@ func (a *ARFS) ReadDir(name string) ([]fs.DirEntry, error) {
 	return ret, nil
 }
 
-func (af *arfile) Stat() (fs.FileInfo, error) {
-	return af.header, nil
+func (fh *fileHeader) Stat() (fs.FileInfo, error) {
+	return fh, nil
 }
 
-func (af *arfile) Read(data []byte) (int, error) {
-	return af.reader.Read(data)
+func (fh *fileHeader) Read(data []byte) (int, error) {
+	return fh.sectionReader.Read(data)
 }
 
-func (af *arfile) Close() error {
+func (fh *fileHeader) Close() error {
 	return nil
 }
 
-func (af *arfile) ReadAt(p []byte, off int64) (n int, err error) {
-	return af.reader.ReadAt(p, off)
+func (fh *fileHeader) ReadAt(p []byte, off int64) (n int, err error) {
+	return fh.sectionReader.ReadAt(p, off)
 }
 
-func (af *arfile) Seek(offset int64, whence int) (int64, error) {
-	return af.reader.Seek(offset, whence)
+func (fh *fileHeader) Seek(offset int64, whence int) (int64, error) {
+	return fh.sectionReader.Seek(offset, whence)
 }
 
-// fileheader implements fs.FileInfo && fs.DirInfo
 func (fh *fileHeader) Name() string {
 	return fh.name
 }
+
 func (fh *fileHeader) Size() int64 {
 	return int64(fh.size)
 }
+
 func (fh *fileHeader) Mode() fs.FileMode {
 	return fs.FileMode(fh.mode)
 }
+
 func (fh *fileHeader) ModTime() time.Time {
 	return fh.modification
 }
+
 func (fh *fileHeader) IsDir() bool {
 	return false
 }
+
 func (fh *fileHeader) Sys() any {
 	return nil
 }
