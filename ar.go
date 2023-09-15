@@ -8,6 +8,7 @@ package goarfs
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -149,6 +150,8 @@ func (a *ARFS) parse() error {
 		if err != nil {
 			return errors.Join(ErrBadFileHeader, err)
 		}
+		// file entries are aligned to two-byte offsets
+		nextPos := size + size&1
 
 		offset, err := a.rawFile.Seek(0, io.SeekCurrent)
 		if err != nil {
@@ -156,6 +159,29 @@ func (a *ARFS) parse() error {
 		}
 
 		sectionReader := io.NewSectionReader(a.rawFile, offset, size)
+
+		// If it's an 'extended' entry, then adjust things slightly
+		// extended entries have a name of the format '#n/m' where n is
+		// incrementing from 1, and m is the number of bytes in the filename
+		// that we will pull out of the data itself.
+		if strings.HasPrefix(filename, "#1/") {
+			length, err := strconv.ParseInt(strings.TrimPrefix(filename, "#1/"), 10, 32)
+			if err != nil {
+				return err
+			}
+			filenameData := make([]byte, length)
+			n, err := sectionReader.Read(filenameData)
+			if err != nil {
+				return err
+			}
+			if n != int(length) {
+				return fmt.Errorf("insufficient data for extended filename: %d vs %d", n, length)
+			}
+
+			size -= length
+			sectionReader = io.NewSectionReader(a.rawFile, offset+length, size)
+			filename = strings.TrimRight(string(filenameData), "\x00")
+		}
 
 		a.fileHeaders[filename] = &fileHeader{
 			name:          filename,
@@ -168,9 +194,7 @@ func (a *ARFS) parse() error {
 			sectionReader: sectionReader,
 		}
 
-		// file entries are aligned to two-byte offsets
-		size += size & 1
-		if _, err := a.rawFile.Seek(size, io.SeekCurrent); err != nil {
+		if _, err := a.rawFile.Seek(nextPos, io.SeekCurrent); err != nil {
 			return err
 		}
 	}
