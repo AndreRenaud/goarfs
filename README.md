@@ -1,5 +1,8 @@
 # Go AR FS
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/AndreRenaud/goarfs.svg)](https://pkg.go.dev/github.com/AndreRenaud/goarfs)
+![workflow badge](https://github.com/AndreRenaud/goarfs/actions/workflows/go.yaml/badge.svg)
+
 ![goarfs logo](goarfs.png)
 
 goarfs implements the fs.FS interface for [AR archive](https://en.wikipedia.org/wiki/Ar_(Unix))
