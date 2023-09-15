@@ -1,7 +1,7 @@
 # Go AR FS
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/AndreRenaud/goarfs.svg)](https://pkg.go.dev/github.com/AndreRenaud/goarfs)
-![workflow badge](https://github.com/AndreRenaud/goarfs/actions/workflows/go.yaml/badge.svg)
+[![workflow badge](https://github.com/AndreRenaud/goarfs/actions/workflows/go.yaml/badge.svg)](https://github.com/AndreRenaud/goarfs/actions)
 
 ![goarfs logo](goarfs.png)
 
