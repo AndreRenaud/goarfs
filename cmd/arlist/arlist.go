@@ -24,13 +24,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("readdir: %s", err)
 	}
-	log.Printf("AR File %q contains %d files", *arfile, len(files))
-	for i, f := range files {
+	fmt.Printf("AR File %q contains %d files\n", *arfile, len(files))
+	for _, f := range files {
 		info, err := f.Info()
 		if err != nil {
 			log.Fatalf("info on %s: %s", f.Name(), err)
 		}
-		log.Printf("%d: %q size=%d modtime=%s mode=%s", i, f.Name(), info.Size(), info.ModTime(), info.Mode())
+
+		fmt.Printf("%s %8d %s %s\n", info.Mode(), info.Size(), info.ModTime(), f.Name())
 	}
 
 	if *filename != "" {
