@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -46,6 +47,7 @@ var _ fs.FS = (*ARFS)(nil)
 var _ fs.ReadDirFS = (*ARFS)(nil)
 var _ fs.ReadFileFS = (*ARFS)(nil)
 var _ fs.StatFS = (*ARFS)(nil)
+var _ fs.GlobFS = (*ARFS)(nil)
 
 type fileHeader struct {
 	name         string
@@ -253,6 +255,20 @@ func (a *ARFS) ReadDir(name string) ([]fs.DirEntry, error) {
 	}
 
 	return ret, nil
+}
+
+func (a *ARFS) Glob(pattern string) ([]string, error) {
+	var fileList []string
+	for name := range a.fileHeaders {
+		match, err := filepath.Match(pattern, name)
+		if err != nil {
+			return nil, err
+		}
+		if match {
+			fileList = append(fileList, name)
+		}
+	}
+	return fileList, nil
 }
 
 func (a *ARFS) ReadFile(name string) ([]byte, error) {

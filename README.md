@@ -12,6 +12,7 @@ It implements the following interfaces:
 * [fs.ReadDirFS](https://pkg.go.dev/io/fs#ReadDirFS)
 * [fs.ReadFileFS](https://pkg.go.dev/io/fs#ReadFileFS)
 * [fs.StatFS](https://pkg.go.dev/io/fs#StatFS)
+* [fs.GlobFS](https://pkg.go.dev/io/fs#GlobFS)
 
 ## Example usage:
 

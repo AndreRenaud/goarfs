@@ -42,6 +42,14 @@ func TestARFile(t *testing.T) {
 	if s.Name() != "test2.dat" {
 		t.Fatalf("test2.dat is named incorrectly: %s", s.Name())
 	}
+
+	fileList, err := ar.Glob("*1.dat")
+	if err != nil {
+		t.Fatalf("glob: %s", err)
+	}
+	if len(fileList) != 1 || fileList[0] != "test1.dat" {
+		t.Fatalf("glob returned wrong list: %#v", fileList)
+	}
 }
 
 func TestExtended(t *testing.T) {
