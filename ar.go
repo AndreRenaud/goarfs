@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -328,7 +329,13 @@ func (fh *fileHeader) IsDir() bool {
 }
 
 func (fh *fileHeader) Sys() any {
-	return nil
+	// As per os.File.Sys() on Unix
+	return &syscall.Stat_t{
+		Uid:  fh.owner,
+		Gid:  fh.group,
+		Mode: uint16(fh.mode),
+		Size: int64(fh.size),
+	}
 }
 
 func (fh *fileHeader) Type() fs.FileMode {

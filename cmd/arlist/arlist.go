@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"syscall"
 
 	"github.com/AndreRenaud/goarfs"
 )
@@ -31,7 +32,15 @@ func main() {
 			log.Fatalf("info on %s: %s", f.Name(), err)
 		}
 
-		fmt.Printf("%s %8d %s %s\n", info.Mode(), info.Size(), info.ModTime(), f.Name())
+		sys := info.Sys()
+		var uid uint32
+		var gid uint32
+		if stat, ok := sys.(*syscall.Stat_t); ok {
+			uid = stat.Uid
+			gid = stat.Gid
+		}
+
+		fmt.Printf("%s %3d %3d %8d %s %s\n", info.Mode(), uid, gid, info.Size(), info.ModTime(), f.Name())
 	}
 
 	if *filename != "" {
