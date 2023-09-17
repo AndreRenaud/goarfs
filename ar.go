@@ -31,16 +31,14 @@ var (
 	ErrBadFileHeader = errors.New("bad AR file header")
 )
 
-type ARFSRaw interface {
-	io.Reader
-	io.ReaderAt
-	io.Seeker
-}
-
 type ARFS struct {
-	rawFile ARFSRaw
+	rawFile arfsReader
 
 	fileHeaders map[string]*fileHeader
+}
+
+type arfsReader struct {
+	io.ReadSeeker
 }
 
 // Make sure we implement all the various fs.FS interfaces
@@ -61,6 +59,27 @@ type fileHeader struct {
 	sectionReader *io.SectionReader
 }
 
+// arfsReader
+func (a *arfsReader) Close() error {
+	// If our input is closable, then do that
+	if closer, ok := a.ReadSeeker.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
+}
+
+func (a *arfsReader) ReadAt(p []byte, off int64) (int, error) {
+	// If we're already a ReadSeeker, just use that
+	if readat, ok := a.ReadSeeker.(io.ReaderAt); ok {
+		return readat.ReadAt(p, off)
+	}
+	// Otherwise fake it using Seek & Read
+	if _, err := a.Seek(off, io.SeekStart); err != nil {
+		return 0, err
+	}
+	return a.Read(p)
+}
+
 // FromFile loads an AR file from the operating system filesystem and returns
 // the fs.FS compatible interface from it. It will return an error if the AR file
 // is corrupt/invalid.
@@ -69,7 +88,7 @@ func FromFile(filename string) (*ARFS, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &ARFS{rawFile: f}
+	a := &ARFS{rawFile: arfsReader{f}}
 	if err := a.parse(); err != nil {
 		f.Close()
 		return nil, err
@@ -77,8 +96,8 @@ func FromFile(filename string) (*ARFS, error) {
 	return a, nil
 }
 
-func FromInterface(raw ARFSRaw) (*ARFS, error) {
-	a := &ARFS{rawFile: raw}
+func FromInterface(raw io.ReadSeeker) (*ARFS, error) {
+	a := &ARFS{rawFile: arfsReader{raw}}
 	if err := a.parse(); err != nil {
 		return nil, err
 	}
@@ -158,7 +177,7 @@ func (a *ARFS) parse() error {
 			return err
 		}
 
-		sectionReader := io.NewSectionReader(a.rawFile, offset, size)
+		sectionReader := io.NewSectionReader(&a.rawFile, offset, size)
 
 		// If it's an 'extended' entry, then adjust things slightly
 		// extended entries have a name of the format '#n/m' where n is
@@ -179,7 +198,7 @@ func (a *ARFS) parse() error {
 			}
 
 			size -= length
-			sectionReader = io.NewSectionReader(a.rawFile, offset+length, size)
+			sectionReader = io.NewSectionReader(&a.rawFile, offset+length, size)
 			filename = strings.TrimRight(string(filenameData), "\x00")
 		}
 
@@ -198,15 +217,10 @@ func (a *ARFS) parse() error {
 			return err
 		}
 	}
-
 }
 
 func (a *ARFS) Close() error {
-	// If our input is closable, then do that
-	if closer, ok := a.rawFile.(io.Closer); ok {
-		return closer.Close()
-	}
-	return nil
+	return a.rawFile.Close()
 }
 
 func (a *ARFS) getHeader(name string) (*fileHeader, bool) {
